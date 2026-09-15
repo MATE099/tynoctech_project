@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getProductById } from "../../../lib/db/products";
+import AddToCartButton from "../../../components/AddToCartButton";
+import WishlistButton from "../../../components/WishlistButton";
 
 /**
  * Dynamic metadata: sets the browser tab title to the product name.
@@ -78,13 +80,10 @@ export default async function ProductPage({
             {product.description}
           </p>
 
-          <button
-            type="button"
-            disabled={!inStock}
-            className="mt-8 w-full rounded-full bg-blue-600 px-6 py-3 font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-zinc-300 dark:disabled:bg-zinc-700 sm:w-auto"
-          >
-            Add to cart
-          </button>
+          {/* Client Components handle the interactivity; the page stays a
+              Server Component that fetches the product. */}
+          <AddToCartButton product={product} />
+          <WishlistButton productId={product.id} />
         </div>
       </div>
     </div>

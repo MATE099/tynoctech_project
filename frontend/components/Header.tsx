@@ -1,9 +1,10 @@
 import Link from "next/link";
+import CartButton from "./CartButton";
 
 /**
  * Site-wide navigation header.
- * A Server Component (no interactivity needed) rendered by the root layout,
- * so it appears on every page.
+ * Stays a Server Component; it just renders the interactive <CartButton />
+ * (a Client Component) inside it.
  */
 export default function Header() {
   return (
@@ -23,6 +24,14 @@ export default function Header() {
             <Link href="/#products" className="hover:text-blue-600">
               Products
             </Link>
+          </li>
+          <li>
+            <Link href="/wishlist" className="hover:text-blue-600">
+              Wishlist
+            </Link>
+          </li>
+          <li>
+            <CartButton />
           </li>
         </ul>
       </nav>

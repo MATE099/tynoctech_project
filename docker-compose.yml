@@ -1,0 +1,33 @@
+# Local testing/deployment stack.
+#
+#   docker compose up --build
+#
+# Starts two services:
+#   - dynamodb-local : an in-memory DynamoDB you can develop against for free
+#   - web            : the Next.js app (built from ./frontend/Dockerfile)
+#
+# The web service reads secrets from frontend/.env.local (see .env.example).
+# With DYNAMODB_ENDPOINT set, the app talks to dynamodb-local instead of AWS.
+
+services:
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    container_name: tynoc-dynamodb
+    command: ["-jar", "DynamoDBLocal.jar", "-inMemory", "-sharedDb"]
+    ports:
+      - "8000:8000"
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: tynoc-web
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./frontend/.env.local
+    environment:
+      # Override the endpoint so the container reaches the sibling service.
+      DYNAMODB_ENDPOINT: http://dynamodb-local:8000
+    depends_on:
+      - dynamodb-local

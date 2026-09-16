@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "db:create-tables": "tsx --env-file=.env.local scripts/create-tables.ts",
     "db:seed": "tsx --env-file=.env.local scripts/seed.ts"
   },
   "dependencies": {

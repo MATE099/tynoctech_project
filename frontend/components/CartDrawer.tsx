@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "./CartProvider";
+import { formatPrice } from "../lib/format";
 
 /**
  * Slide-over cart drawer. Rendered once (in the layout) and shown/hidden based
@@ -51,13 +52,13 @@ export default function CartDrawer() {
             <ul className="space-y-4">
               {items.map((line) => (
                 <li key={line.product.id} className="flex gap-3">
-                  <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
+                  <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-zinc-800">
                     <Image
                       src={line.product.imageUrl}
                       alt={line.product.name}
                       fill
                       sizes="64px"
-                      className="object-cover"
+                      className="object-contain p-1"
                     />
                   </div>
 
@@ -66,7 +67,7 @@ export default function CartDrawer() {
                       {line.product.name}
                     </span>
                     <span className="text-sm text-zinc-500">
-                      ${line.product.price.toFixed(2)}
+                      {formatPrice(line.product.price)}
                     </span>
 
                     {/* Quantity controls */}
@@ -99,7 +100,7 @@ export default function CartDrawer() {
 
                   <div className="flex flex-col items-end justify-between">
                     <span className="text-sm font-semibold">
-                      ${line.lineTotal.toFixed(2)}
+                      {formatPrice(line.lineTotal)}
                     </span>
                     <button
                       type="button"
@@ -119,7 +120,7 @@ export default function CartDrawer() {
         <div className="border-t border-zinc-200 p-4 dark:border-zinc-800">
           <div className="mb-3 flex items-center justify-between text-base font-semibold">
             <span>Subtotal</span>
-            <span>${(summary?.subtotal ?? 0).toFixed(2)}</span>
+            <span>{formatPrice(summary?.subtotal ?? 0)}</span>
           </div>
           <Link
             href="/cart"

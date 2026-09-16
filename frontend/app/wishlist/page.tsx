@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useWishlist } from "../../components/WishlistProvider";
 import { useCart } from "../../components/CartProvider";
+import { formatPrice } from "../../lib/format";
 
 /**
  * Wishlist page (route: /wishlist).
@@ -44,13 +45,13 @@ export default function WishlistPage() {
             key={line.product.id}
             className="flex gap-4 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800"
           >
-            <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
+            <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-zinc-800">
               <Image
                 src={line.product.imageUrl}
                 alt={line.product.name}
                 fill
                 sizes="96px"
-                className="object-cover"
+                className="object-contain p-1.5"
               />
             </div>
 
@@ -62,7 +63,7 @@ export default function WishlistPage() {
                 {line.product.name}
               </Link>
               <span className="text-sm text-zinc-500">
-                ${line.product.price.toFixed(2)}
+                {formatPrice(line.product.price)}
               </span>
 
               <div className="mt-auto flex gap-3 pt-2">

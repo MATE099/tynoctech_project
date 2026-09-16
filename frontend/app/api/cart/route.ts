@@ -56,6 +56,16 @@ export async function POST(request: Request) {
     );
     return NextResponse.json(await buildCartSummary(cart));
   } catch (error) {
+    // Turn business-logic errors from the data layer into clear HTTP responses.
+    if (error instanceof Error && error.message === "PRODUCT_NOT_FOUND") {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
+    if (error instanceof Error && error.message === "INSUFFICIENT_STOCK") {
+      return NextResponse.json(
+        { error: "Not enough stock available" },
+        { status: 409 },
+      );
+    }
     console.error("POST /api/cart failed:", error);
     return NextResponse.json({ error: "Failed to add item" }, { status: 500 });
   }

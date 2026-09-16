@@ -6,9 +6,13 @@ const nextConfig: NextConfig = {
   // lets us run the app without installing all dependencies again.
   output: "standalone",
   images: {
-    // Allow next/image to optimize images served from this remote host.
-    // Add more patterns here when you switch to real product images (e.g. S3).
+    // Allow next/image to optimize images served from these remote hosts.
+    // Add more patterns here when you switch to your own images (e.g. S3).
     remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "cdn.dummyjson.com",
+      },
       {
         protocol: "https",
         hostname: "placehold.co",

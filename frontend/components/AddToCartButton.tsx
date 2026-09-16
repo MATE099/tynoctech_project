@@ -19,7 +19,11 @@ export default function AddToCartButton({ product }: { product: Product }) {
       await addItem(product.id, 1);
     } catch (error) {
       console.error(error);
-      alert("Sorry, we couldn't add that to your cart.");
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Sorry, we couldn't add that to your cart.";
+      alert(message);
     } finally {
       setPending(false);
     }

@@ -34,19 +34,35 @@ async function saveCart(cart: Cart): Promise<Cart> {
 
 /**
  * Add a product to the cart.
- * DUPLICATE PREVENTION: if the product is already in the cart we increase its
- * quantity instead of adding a second line for the same product.
+ *
+ * BUSINESS LOGIC enforced here (the data layer, so every caller is protected):
+ *   - The product must exist            -> throws "PRODUCT_NOT_FOUND"
+ *   - There must be enough stock        -> throws "INSUFFICIENT_STOCK"
+ *   - DUPLICATE PREVENTION: if the product is already in the cart we increase
+ *     its quantity instead of adding a second line for the same product.
  */
 export async function addItemToCart(
   cartId: string,
   productId: string,
   quantity: number,
 ): Promise<Cart> {
+  // Always read the product from the DB so stock is authoritative.
+  const product = await getProductById(productId);
+  if (!product) {
+    throw new Error("PRODUCT_NOT_FOUND");
+  }
+
   const cart = await getCart(cartId);
   const existing = cart.items.find((item) => item.productId === productId);
+  const requestedTotal = (existing?.quantity ?? 0) + quantity;
+
+  // Reject if the requested total quantity exceeds available stock.
+  if (requestedTotal > product.stock) {
+    throw new Error("INSUFFICIENT_STOCK");
+  }
 
   if (existing) {
-    existing.quantity += quantity;
+    existing.quantity = requestedTotal;
   } else {
     cart.items.push({ productId, quantity });
   }

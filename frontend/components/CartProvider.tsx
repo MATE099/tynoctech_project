@@ -63,7 +63,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error("Cart request failed");
+      if (!res.ok) {
+        // Surface the server's message (e.g. "Not enough stock available").
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || "Cart request failed");
+      }
       // The API returns the fresh summary, so we just store it.
       setSummary(await res.json());
     },

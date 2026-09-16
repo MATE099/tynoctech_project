@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "../../components/CartProvider";
+import { formatPrice } from "../../lib/format";
 
 /**
  * Full cart page (route: /cart). Client Component because it reads and mutates
@@ -41,13 +42,13 @@ export default function CartPage() {
       <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
         {items.map((line) => (
           <li key={line.product.id} className="flex gap-4 py-4">
-            <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
+            <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-zinc-800">
               <Image
                 src={line.product.imageUrl}
                 alt={line.product.name}
                 fill
                 sizes="96px"
-                className="object-cover"
+                className="object-contain p-1.5"
               />
             </div>
 
@@ -59,7 +60,7 @@ export default function CartPage() {
                 {line.product.name}
               </Link>
               <span className="text-sm text-zinc-500">
-                ${line.product.price.toFixed(2)} each
+                {formatPrice(line.product.price)} each
               </span>
 
               <div className="mt-2 flex items-center gap-2">
@@ -89,7 +90,7 @@ export default function CartPage() {
 
             <div className="flex flex-col items-end justify-between">
               <span className="font-semibold">
-                ${line.lineTotal.toFixed(2)}
+                {formatPrice(line.lineTotal)}
               </span>
               <button
                 type="button"
@@ -107,7 +108,7 @@ export default function CartPage() {
       <div className="mt-8 flex flex-col items-end gap-4">
         <div className="flex w-full max-w-xs justify-between text-lg font-semibold">
           <span>Subtotal</span>
-          <span>${(summary?.subtotal ?? 0).toFixed(2)}</span>
+          <span>{formatPrice(summary?.subtotal ?? 0)}</span>
         </div>
         <button
           type="button"

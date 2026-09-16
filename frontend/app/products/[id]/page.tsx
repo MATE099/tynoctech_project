@@ -2,9 +2,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getProductById } from "../../../lib/db/products";
+import { getProductById, getProductsByCategory } from "../../../lib/db/products";
 import AddToCartButton from "../../../components/AddToCartButton";
 import WishlistButton from "../../../components/WishlistButton";
+import ProductCard from "../../../components/ProductCard";
+import { formatPrice } from "../../../lib/format";
 
 /**
  * Dynamic metadata: sets the browser tab title to the product name.
@@ -37,6 +39,19 @@ export default async function ProductPage({
 
   const inStock = product.stock > 0;
 
+  // Related products: other items in the same category. We fetch them, drop the
+  // current product, and show up to 4. Wrapped in try/catch so a failure here
+  // never breaks the main product page.
+  let relatedProducts: Awaited<ReturnType<typeof getProductsByCategory>> = [];
+  try {
+    const sameCategory = await getProductsByCategory(product.categoryId);
+    relatedProducts = sameCategory
+      .filter((p) => p.id !== product.id)
+      .slice(0, 4);
+  } catch (error) {
+    console.error("Failed to load related products:", error);
+  }
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-12">
       <Link
@@ -48,13 +63,13 @@ export default async function ProductPage({
 
       <div className="grid grid-cols-1 gap-10 md:grid-cols-2">
         {/* Product image */}
-        <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800">
+        <div className="relative aspect-square w-full overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-100">
           <Image
             src={product.imageUrl}
             alt={product.name}
             fill
             sizes="(max-width: 768px) 100vw, 50vw"
-            className="object-cover"
+            className="object-contain p-6"
             priority
           />
         </div>
@@ -63,7 +78,7 @@ export default async function ProductPage({
         <div className="flex flex-col">
           <h1 className="text-3xl font-bold">{product.name}</h1>
           <p className="mt-4 text-2xl font-semibold">
-            ${product.price.toFixed(2)}
+            {formatPrice(product.price)}
           </p>
 
           <span
@@ -86,6 +101,18 @@ export default async function ProductPage({
           <WishlistButton productId={product.id} />
         </div>
       </div>
+
+      {/* Related products */}
+      {relatedProducts.length > 0 && (
+        <section className="mt-16">
+          <h2 className="mb-6 text-2xl font-semibold">Related products</h2>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {relatedProducts.map((related) => (
+              <ProductCard key={related.id} product={related} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

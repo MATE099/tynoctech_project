@@ -8,6 +8,9 @@ import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 // data-fetching code catches it — keeping imports and the build safe.
 const client = new DynamoDBClient({
   region: process.env.AWS_REGION,
+  // Optional: point at a local DynamoDB (e.g. DynamoDB Local in Docker) by
+  // setting DYNAMODB_ENDPOINT. When unset, the SDK talks to real AWS.
+  endpoint: process.env.DYNAMODB_ENDPOINT || undefined,
 });
 
 // One shared document client, reused for every DynamoDB operation.

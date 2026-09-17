@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCart } from "../../components/CartProvider";
-import { formatPrice } from "../../lib/format";
+import { useCart } from "../../../components/CartProvider";
+import { formatPrice } from "../../../lib/format";
 
 /**
  * Full cart page (route: /cart). Client Component because it reads and mutates

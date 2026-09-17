@@ -2,11 +2,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getProductById, getProductsByCategory } from "../../../lib/db/products";
-import AddToCartButton from "../../../components/AddToCartButton";
-import WishlistButton from "../../../components/WishlistButton";
-import ProductCard from "../../../components/ProductCard";
-import { formatPrice } from "../../../lib/format";
+import {
+  getProductById,
+  getProductsByCategory,
+} from "../../../../lib/db/products";
+import AddToCartButton from "../../../../components/AddToCartButton";
+import WishlistButton from "../../../../components/WishlistButton";
+import ProductCard from "../../../../components/ProductCard";
+import { formatPrice } from "../../../../lib/format";
 
 /**
  * Dynamic metadata: sets the browser tab title to the product name.

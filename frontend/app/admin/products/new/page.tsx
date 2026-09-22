@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import ErrorState from "../../../../components/admin/ErrorState";
 import ProductForm from "../../../../components/admin/ProductForm";
 import { getCategories } from "../../../../lib/db/categories";
+import { createProductAction } from "../actions";
 import { Category } from "../../../../types";
 
 export const metadata: Metadata = { title: "Add product" };
@@ -53,7 +54,12 @@ export default async function NewProductPage() {
             message="A product needs a category. Check that DynamoDB is running, then refresh."
           />
         ) : (
-          <ProductForm categories={categories} />
+          <ProductForm
+            categories={categories}
+            action={createProductAction}
+            submitLabel="Create product"
+            pendingLabel="Creating..."
+          />
         )}
       </div>
     </div>

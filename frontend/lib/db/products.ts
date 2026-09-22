@@ -5,7 +5,9 @@ import {
   UpdateCommand,
   DeleteCommand,
 } from "@aws-sdk/lib-dynamodb";
+import type { ScanCommandInput } from "@aws-sdk/lib-dynamodb";
 import { dynamodb } from "../dynamodb";
+import { isConditionFailed } from "./errors";
 import { Product } from "../../types";
 
 // Table name comes from the environment so we can use different tables
@@ -60,6 +62,39 @@ export async function getProductsByCategory(
   return (response.Items as Product[]) ?? [];
 }
 
+/**
+ * How many products belong to a category. Used to block deleting a category
+ * that products still point at.
+ *
+ * Two details worth knowing about Scan:
+ *  - `Select: "COUNT"` returns only the number, so no item data is sent back.
+ *  - One Scan reads at most 1 MB, then hands back a `LastEvaluatedKey`. We
+ *    loop until that key is gone, otherwise a big table would undercount.
+ */
+export async function countProductsByCategory(
+  categoryId: string,
+): Promise<number> {
+  let count = 0;
+  let startKey: ScanCommandInput["ExclusiveStartKey"];
+
+  do {
+    const response = await dynamodb.send(
+      new ScanCommand({
+        TableName: PRODUCTS_TABLE,
+        FilterExpression: "categoryId = :catId",
+        ExpressionAttributeValues: { ":catId": categoryId },
+        Select: "COUNT",
+        ExclusiveStartKey: startKey,
+      }),
+    );
+
+    count += response.Count ?? 0;
+    startKey = response.LastEvaluatedKey;
+  } while (startKey);
+
+  return count;
+}
+
 /** The fields a caller provides; id and timestamps are generated here. */
 export type NewProduct = Omit<Product, "id" | "createdAt" | "updatedAt">;
 
@@ -89,23 +124,7 @@ export async function createProduct(input: NewProduct): Promise<Product> {
   return product;
 }
 
-/** True when DynamoDB rejected a write because its ConditionExpression failed. */
-function isConditionFailed(error: unknown): boolean {
-  return (
-    error instanceof Error && error.name === "ConditionalCheckFailedException"
-  );
-}
-
-/**
- * Change some fields of an existing product. Returns null if it doesn't exist.
- *
- * UpdateCommand edits only the listed attributes, unlike PutCommand which
- * replaces the whole item. The expression is built from the fields provided:
- *   { stock: 3 }  ->  "SET #updatedAt = :updatedAt, #stock = :stock"
- *
- * Every attribute goes through a "#placeholder" because some names, such as
- * `name`, are reserved words in DynamoDB and would otherwise be a syntax error.
- */
+/** Change some fields of an existing product. Returns null if it doesn't exist. */
 export async function updateProduct(
   id: string,
   changes: Partial<NewProduct>,

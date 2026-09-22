@@ -1,4 +1,4 @@
-import { ScanCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
+import { ScanCommand, GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
 import { dynamodb } from "../dynamodb";
 import { Product } from "../../types";
 
@@ -52,4 +52,33 @@ export async function getProductsByCategory(
   const response = await dynamodb.send(command);
 
   return (response.Items as Product[]) ?? [];
+}
+
+/** The fields a caller provides; id and timestamps are generated here. */
+export type NewProduct = Omit<Product, "id" | "createdAt" | "updatedAt">;
+
+/**
+ * Insert a new product.
+ *
+ * ConditionExpression makes DynamoDB reject the write if an item with this id
+ * already exists. PutCommand would otherwise silently overwrite it.
+ */
+export async function createProduct(input: NewProduct): Promise<Product> {
+  const now = new Date().toISOString();
+  const product: Product = {
+    ...input,
+    id: `prod-${crypto.randomUUID()}`,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  await dynamodb.send(
+    new PutCommand({
+      TableName: PRODUCTS_TABLE,
+      Item: product,
+      ConditionExpression: "attribute_not_exists(id)",
+    }),
+  );
+
+  return product;
 }

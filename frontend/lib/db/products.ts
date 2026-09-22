@@ -1,5 +1,13 @@
-import { ScanCommand, GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
+import {
+  ScanCommand,
+  GetCommand,
+  PutCommand,
+  UpdateCommand,
+  DeleteCommand,
+} from "@aws-sdk/lib-dynamodb";
+import type { ScanCommandInput } from "@aws-sdk/lib-dynamodb";
 import { dynamodb } from "../dynamodb";
+import { isConditionFailed } from "./errors";
 import { Product } from "../../types";
 
 // Table name comes from the environment so we can use different tables
@@ -54,6 +62,39 @@ export async function getProductsByCategory(
   return (response.Items as Product[]) ?? [];
 }
 
+/**
+ * How many products belong to a category. Used to block deleting a category
+ * that products still point at.
+ *
+ * Two details worth knowing about Scan:
+ *  - `Select: "COUNT"` returns only the number, so no item data is sent back.
+ *  - One Scan reads at most 1 MB, then hands back a `LastEvaluatedKey`. We
+ *    loop until that key is gone, otherwise a big table would undercount.
+ */
+export async function countProductsByCategory(
+  categoryId: string,
+): Promise<number> {
+  let count = 0;
+  let startKey: ScanCommandInput["ExclusiveStartKey"];
+
+  do {
+    const response = await dynamodb.send(
+      new ScanCommand({
+        TableName: PRODUCTS_TABLE,
+        FilterExpression: "categoryId = :catId",
+        ExpressionAttributeValues: { ":catId": categoryId },
+        Select: "COUNT",
+        ExclusiveStartKey: startKey,
+      }),
+    );
+
+    count += response.Count ?? 0;
+    startKey = response.LastEvaluatedKey;
+  } while (startKey);
+
+  return count;
+}
+
 /** The fields a caller provides; id and timestamps are generated here. */
 export type NewProduct = Omit<Product, "id" | "createdAt" | "updatedAt">;
 
@@ -81,4 +122,59 @@ export async function createProduct(input: NewProduct): Promise<Product> {
   );
 
   return product;
+}
+
+/** Change some fields of an existing product. Returns null if it doesn't exist. */
+export async function updateProduct(
+  id: string,
+  changes: Partial<NewProduct>,
+): Promise<Product | null> {
+  const names: Record<string, string> = { "#updatedAt": "updatedAt" };
+  const values: Record<string, unknown> = {
+    ":updatedAt": new Date().toISOString(),
+  };
+  const assignments = ["#updatedAt = :updatedAt"];
+
+  for (const [key, value] of Object.entries(changes)) {
+    if (value === undefined) continue;
+    names[`#${key}`] = key;
+    values[`:${key}`] = value;
+    assignments.push(`#${key} = :${key}`);
+  }
+
+  try {
+    const response = await dynamodb.send(
+      new UpdateCommand({
+        TableName: PRODUCTS_TABLE,
+        Key: { id },
+        UpdateExpression: `SET ${assignments.join(", ")}`,
+        // Without this, updating a missing id would CREATE a half-empty item.
+        ConditionExpression: "attribute_exists(id)",
+        ExpressionAttributeNames: names,
+        ExpressionAttributeValues: values,
+        ReturnValues: "ALL_NEW",
+      }),
+    );
+    return response.Attributes as Product;
+  } catch (error) {
+    if (isConditionFailed(error)) return null;
+    throw error;
+  }
+}
+
+/** Delete a product. Returns false if there was nothing to delete. */
+export async function deleteProduct(id: string): Promise<boolean> {
+  try {
+    await dynamodb.send(
+      new DeleteCommand({
+        TableName: PRODUCTS_TABLE,
+        Key: { id },
+        ConditionExpression: "attribute_exists(id)",
+      }),
+    );
+    return true;
+  } catch (error) {
+    if (isConditionFailed(error)) return false;
+    throw error;
+  }
 }

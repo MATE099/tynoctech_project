@@ -1,9 +1,13 @@
 import { z } from "zod";
 import { PLACEHOLDER_IMAGE_URL } from "../../config/images";
 import { getCategoryById } from "../db/categories";
-import { createProduct } from "../db/products";
+import { createProduct, NewProduct, updateProduct } from "../db/products";
 import { getStockStatus, StockStatus } from "../stock";
-import { createProductSchema, ProductField } from "../validations/product";
+import {
+  createProductSchema,
+  ProductField,
+  updateProductSchema,
+} from "../validations/product";
 import { Product } from "../../types";
 
 /**
@@ -16,46 +20,116 @@ import { Product } from "../../types";
 
 export type ProductFieldErrors = Partial<Record<ProductField, string[]>>;
 
+type Invalid = {
+  ok: false;
+  reason: "invalid";
+  message: string;
+  fieldErrors: ProductFieldErrors;
+};
+type NotFound = { ok: false; reason: "not_found"; message: string };
+
 /**
- * A "discriminated union": check `result.ok` and TypeScript knows which of the
- * two shapes you have, so you can't read `product` from a failed result.
+ * "Discriminated unions": check `result.ok` (and `result.reason`) and
+ * TypeScript knows which shape you have, so you can't read `product` from a
+ * failed result or forget to handle "not found".
  */
-export type CreateProductResult =
+export type CreateProductResult = { ok: true; product: Product } | Invalid;
+export type UpdateProductResult =
   | { ok: true; product: Product }
-  | { ok: false; message: string; fieldErrors: ProductFieldErrors };
+  | Invalid
+  | NotFound;
+
+function invalid(
+  fieldErrors: ProductFieldErrors,
+  message = "Please fix the highlighted fields.",
+): Invalid {
+  return { ok: false, reason: "invalid", message, fieldErrors };
+}
+
+/**
+ * Zod can check that categoryId is a non-empty string, but only DynamoDB knows
+ * whether that category exists. Returns an error result, or null if it's fine.
+ */
+async function checkCategory(categoryId?: string): Promise<Invalid | null> {
+  if (categoryId === undefined) return null;
+  const category = await getCategoryById(categoryId);
+  return category
+    ? null
+    : invalid({ categoryId: ["Selected category does not exist"] });
+}
+
+async function saveChanges(
+  id: string,
+  changes: Partial<NewProduct>,
+): Promise<UpdateProductResult> {
+  const product = await updateProduct(id, changes);
+  if (!product) {
+    return { ok: false, reason: "not_found", message: "Product not found" };
+  }
+  return { ok: true, product };
+}
 
 export async function createProductFromInput(
   input: unknown,
 ): Promise<CreateProductResult> {
-  // 1. Shape and format checks.
   const parsed = createProductSchema.safeParse(input);
   if (!parsed.success) {
-    return {
-      ok: false,
-      message: "Please fix the highlighted fields.",
-      // flattenError groups messages by field: { price: ["..."], ... }
-      fieldErrors: z.flattenError(parsed.error).fieldErrors,
-    };
+    // flattenError groups messages by field: { price: ["..."], ... }
+    return invalid(z.flattenError(parsed.error).fieldErrors);
   }
 
-  // 2. Rules that need the database: Zod can check that categoryId is a
-  //    non-empty string, but only DynamoDB knows whether that category exists.
-  const category = await getCategoryById(parsed.data.categoryId);
-  if (!category) {
-    return {
-      ok: false,
-      message: "Please fix the highlighted fields.",
-      fieldErrors: { categoryId: ["Selected category does not exist"] },
-    };
-  }
+  const categoryError = await checkCategory(parsed.data.categoryId);
+  if (categoryError) return categoryError;
 
-  // 3. Save.
   const product = await createProduct({
     ...parsed.data,
     imageUrl: parsed.data.imageUrl ?? PLACEHOLDER_IMAGE_URL,
   });
-
   return { ok: true, product };
+}
+
+/**
+ * PATCH semantics: only the fields present in `input` change.
+ * Used by the inline stock editor ({ stock: 4 }) and the admin API.
+ */
+export async function updateProductFromInput(
+  id: string,
+  input: unknown,
+): Promise<UpdateProductResult> {
+  const parsed = updateProductSchema.safeParse(input);
+  if (!parsed.success) {
+    const { formErrors, fieldErrors } = z.flattenError(parsed.error);
+    // formErrors holds object-level errors, e.g. "Provide at least one field".
+    return invalid(fieldErrors, formErrors[0]);
+  }
+
+  const categoryError = await checkCategory(parsed.data.categoryId);
+  if (categoryError) return categoryError;
+
+  return saveChanges(id, parsed.data);
+}
+
+/**
+ * Full-replace semantics: every field is required, as on the create form.
+ * Used by the edit form, which always submits all fields. An emptied image
+ * URL falls back to the placeholder, matching the form's hint text.
+ */
+export async function replaceProductFromInput(
+  id: string,
+  input: unknown,
+): Promise<UpdateProductResult> {
+  const parsed = createProductSchema.safeParse(input);
+  if (!parsed.success) {
+    return invalid(z.flattenError(parsed.error).fieldErrors);
+  }
+
+  const categoryError = await checkCategory(parsed.data.categoryId);
+  if (categoryError) return categoryError;
+
+  return saveChanges(id, {
+    ...parsed.data,
+    imageUrl: parsed.data.imageUrl ?? PLACEHOLDER_IMAGE_URL,
+  });
 }
 
 /**

@@ -2,10 +2,8 @@
 
 import Link from "next/link";
 import { ReactNode, useActionState } from "react";
-import {
-  createProductAction,
-  ProductFormState,
-} from "../../app/admin/products/actions";
+import type { ProductFormState } from "../../app/admin/products/actions";
+import type { ProductField } from "../../lib/validations/product";
 import { Category } from "../../types";
 
 const INITIAL_STATE: ProductFormState = {};
@@ -45,24 +43,40 @@ function Field({
 }
 
 /**
- * "Add product" form.
+ * Product form, shared by the "Add product" and "Edit product" pages.
  *
- * useActionState wires the form to the Server Action and gives us:
- *   state     - whatever the action returned last (errors + typed values)
+ * The page decides what happens on submit by passing `action` (a Server
+ * Action) and, for editing, `initialValues` loaded from DynamoDB.
+ *
+ * useActionState wires the form to that action and gives us:
+ *   state      - whatever the action returned last (errors + typed values)
  *   formAction - pass this to <form action>
- *   isPending - true while the action is running (disables the button)
+ *   isPending  - true while the action is running (disables the button)
  *
  * The browser `required`/`min` attributes are only a convenience: they can be
  * bypassed, so the Server Action re-validates everything with Zod.
  */
-export default function ProductForm({ categories }: { categories: Category[] }) {
-  const [state, formAction, isPending] = useActionState(
-    createProductAction,
-    INITIAL_STATE,
-  );
+export default function ProductForm({
+  categories,
+  action,
+  initialValues,
+  submitLabel,
+  pendingLabel,
+}: {
+  categories: Category[];
+  action: (
+    state: ProductFormState,
+    formData: FormData,
+  ) => Promise<ProductFormState>;
+  initialValues?: Partial<Record<ProductField, string>>;
+  submitLabel: string;
+  pendingLabel: string;
+}) {
+  const [state, formAction, isPending] = useActionState(action, INITIAL_STATE);
 
   const errors = state.fieldErrors ?? {};
-  const values = state.values ?? {};
+  // After a failed submit show what the admin typed; otherwise the saved data.
+  const values = state.values ?? initialValues ?? {};
 
   // Red border + aria attributes for fields that failed validation.
   function invalidProps(field: keyof typeof errors) {
@@ -193,7 +207,7 @@ export default function ProductForm({ categories }: { categories: Category[] }) 
           disabled={isPending}
           className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isPending ? "Saving..." : "Create product"}
+          {isPending ? pendingLabel : submitLabel}
         </button>
       </div>
     </form>

@@ -1,7 +1,6 @@
 import DataTable, { Column } from "../../components/admin/DataTable";
 import StatCard from "../../components/admin/StatCard";
 import StatCardSkeleton from "../../components/admin/StatCardSkeleton";
-import ModalDemo from "../../components/admin/ModalDemo";
 
 /**
  * Admin dashboard home.
@@ -101,13 +100,6 @@ export default function AdminDashboardPage() {
           rows={[]}
           emptyMessage="No records found. Try adjusting your filters."
         />
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
-          Modal primitive
-        </h2>
-        <ModalDemo />
       </section>
     </div>
   );

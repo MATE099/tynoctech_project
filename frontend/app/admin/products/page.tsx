@@ -2,9 +2,11 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import DataTable, { Column } from "../../../components/admin/DataTable";
+import DeleteProductButton from "../../../components/admin/DeleteProductButton";
 import ErrorState from "../../../components/admin/ErrorState";
 import ProductFilters from "../../../components/admin/ProductFilters";
 import StockBadge from "../../../components/admin/StockBadge";
+import StockEditor from "../../../components/admin/StockEditor";
 import { getCategories } from "../../../lib/db/categories";
 import { getProducts } from "../../../lib/db/products";
 import { formatPrice } from "../../../lib/format";
@@ -26,11 +28,13 @@ export const metadata: Metadata = { title: "Products" };
 export default async function AdminProductsPage({
   searchParams,
 }: PageProps<"/admin/products">) {
-  const { q, status, created } = await searchParams;
+  const { q, status, created, updated, deleted } = await searchParams;
   // URL params can be string | string[] | undefined, so narrow them first.
   const query = typeof q === "string" ? q : "";
   const statusFilter = isStockStatus(status) ? status : undefined;
   const createdId = typeof created === "string" ? created : undefined;
+  const updatedId = typeof updated === "string" ? updated : undefined;
+  const deletedName = typeof deleted === "string" ? deleted : undefined;
 
   let allProducts: Product[] = [];
   let categories: Category[] = [];
@@ -56,6 +60,17 @@ export default async function AdminProductsPage({
   const createdProduct = createdId
     ? allProducts.find((p) => p.id === createdId)
     : undefined;
+  const updatedProduct = updatedId
+    ? allProducts.find((p) => p.id === updatedId)
+    : undefined;
+
+  const notice = createdProduct
+    ? { name: createdProduct.name, verb: "created" }
+    : updatedProduct
+      ? { name: updatedProduct.name, verb: "updated" }
+      : deletedName
+        ? { name: deletedName, verb: "deleted" }
+        : null;
 
   const columns: Column<Product>[] = [
     {
@@ -97,11 +112,35 @@ export default async function AdminProductsPage({
     {
       header: "Stock",
       className: "text-right",
-      render: (product) => <span className="tabular-nums">{product.stock}</span>,
+      render: (product) => (
+        <StockEditor
+          productId={product.id}
+          productName={product.name}
+          initialStock={product.stock}
+        />
+      ),
     },
     {
       header: "Status",
       render: (product) => <StockBadge stock={product.stock} />,
+    },
+    {
+      header: "Actions",
+      className: "text-right",
+      render: (product) => (
+        <div className="flex items-center justify-end gap-4">
+          <Link
+            href={`/admin/products/${encodeURIComponent(product.id)}/edit`}
+            className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
+          >
+            Edit
+          </Link>
+          <DeleteProductButton
+            productId={product.id}
+            productName={product.name}
+          />
+        </div>
+      ),
     },
   ];
 
@@ -122,12 +161,12 @@ export default async function AdminProductsPage({
         </Link>
       </div>
 
-      {createdProduct && (
+      {notice && (
         <div
           role="status"
           className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-300"
         >
-          Product <strong>{createdProduct.name}</strong> was created.
+          Product <strong>{notice.name}</strong> was {notice.verb}.
         </div>
       )}
 

@@ -6,7 +6,7 @@ export default function Loading() {
     <div className="space-y-6">
       <div className="h-8 w-40 animate-pulse rounded bg-zinc-200 dark:bg-zinc-800" />
       <div className="h-10 w-full max-w-xl animate-pulse rounded-lg bg-zinc-200 dark:bg-zinc-800" />
-      <TableSkeleton columns={5} rows={8} />
+      <TableSkeleton columns={6} rows={8} />
     </div>
   );
 }

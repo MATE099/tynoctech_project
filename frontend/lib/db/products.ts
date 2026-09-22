@@ -1,4 +1,10 @@
-import { ScanCommand, GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
+import {
+  ScanCommand,
+  GetCommand,
+  PutCommand,
+  UpdateCommand,
+  DeleteCommand,
+} from "@aws-sdk/lib-dynamodb";
 import { dynamodb } from "../dynamodb";
 import { Product } from "../../types";
 
@@ -81,4 +87,75 @@ export async function createProduct(input: NewProduct): Promise<Product> {
   );
 
   return product;
+}
+
+/** True when DynamoDB rejected a write because its ConditionExpression failed. */
+function isConditionFailed(error: unknown): boolean {
+  return (
+    error instanceof Error && error.name === "ConditionalCheckFailedException"
+  );
+}
+
+/**
+ * Change some fields of an existing product. Returns null if it doesn't exist.
+ *
+ * UpdateCommand edits only the listed attributes, unlike PutCommand which
+ * replaces the whole item. The expression is built from the fields provided:
+ *   { stock: 3 }  ->  "SET #updatedAt = :updatedAt, #stock = :stock"
+ *
+ * Every attribute goes through a "#placeholder" because some names, such as
+ * `name`, are reserved words in DynamoDB and would otherwise be a syntax error.
+ */
+export async function updateProduct(
+  id: string,
+  changes: Partial<NewProduct>,
+): Promise<Product | null> {
+  const names: Record<string, string> = { "#updatedAt": "updatedAt" };
+  const values: Record<string, unknown> = {
+    ":updatedAt": new Date().toISOString(),
+  };
+  const assignments = ["#updatedAt = :updatedAt"];
+
+  for (const [key, value] of Object.entries(changes)) {
+    if (value === undefined) continue;
+    names[`#${key}`] = key;
+    values[`:${key}`] = value;
+    assignments.push(`#${key} = :${key}`);
+  }
+
+  try {
+    const response = await dynamodb.send(
+      new UpdateCommand({
+        TableName: PRODUCTS_TABLE,
+        Key: { id },
+        UpdateExpression: `SET ${assignments.join(", ")}`,
+        // Without this, updating a missing id would CREATE a half-empty item.
+        ConditionExpression: "attribute_exists(id)",
+        ExpressionAttributeNames: names,
+        ExpressionAttributeValues: values,
+        ReturnValues: "ALL_NEW",
+      }),
+    );
+    return response.Attributes as Product;
+  } catch (error) {
+    if (isConditionFailed(error)) return null;
+    throw error;
+  }
+}
+
+/** Delete a product. Returns false if there was nothing to delete. */
+export async function deleteProduct(id: string): Promise<boolean> {
+  try {
+    await dynamodb.send(
+      new DeleteCommand({
+        TableName: PRODUCTS_TABLE,
+        Key: { id },
+        ConditionExpression: "attribute_exists(id)",
+      }),
+    );
+    return true;
+  } catch (error) {
+    if (isConditionFailed(error)) return false;
+    throw error;
+  }
 }

@@ -1,4 +1,4 @@
-import { ScanCommand } from "@aws-sdk/lib-dynamodb";
+import { ScanCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
 import { dynamodb } from "../dynamodb";
 import { Category } from "../../types";
 
@@ -12,4 +12,13 @@ export async function getCategories(): Promise<Category[]> {
   const response = await dynamodb.send(command);
 
   return (response.Items as Category[]) ?? [];
+}
+
+/** Fetch one category by id, or null if it doesn't exist. */
+export async function getCategoryById(id: string): Promise<Category | null> {
+  const response = await dynamodb.send(
+    new GetCommand({ TableName: CATEGORIES_TABLE, Key: { id } }),
+  );
+
+  return (response.Item as Category) ?? null;
 }

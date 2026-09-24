@@ -1,9 +1,32 @@
 import { GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
 import { dynamodb } from "../dynamodb";
 import { getProductById } from "./products";
+import { scanAll } from "./scan";
 import { Cart, CartLine, CartSummary } from "../../types";
 
 const CARTS_TABLE = process.env.CARTS_TABLE_NAME || "Carts";
+
+/**
+ * The stored cart row for one owner, or null if they never added anything.
+ *
+ * The table key `id` is the OWNER's id: a guest session id from the
+ * tynoc_session cookie, or a registered user's id. Either way a direct key
+ * lookup (GetCommand) is the fastest, cheapest read DynamoDB offers.
+ *
+ * Unlike getCart(), this does not invent an empty cart, so the admin can tell
+ * "no cart row exists" apart from "a cart exists but is empty".
+ */
+export async function getCartByOwner(ownerId: string): Promise<Cart | null> {
+  const response = await dynamodb.send(
+    new GetCommand({ TableName: CARTS_TABLE, Key: { id: ownerId } }),
+  );
+  return (response.Item as Cart) ?? null;
+}
+
+/** Every cart row in the table, for the admin inspector. */
+export async function getAllCarts(): Promise<Cart[]> {
+  return scanAll<Cart>(CARTS_TABLE);
+}
 
 /**
  * Load a cart by id. If it doesn't exist yet, return an empty in-memory cart

@@ -14,7 +14,14 @@ import { DeleteCommand } from "@aws-sdk/lib-dynamodb";
 import { TABLES } from "../config/tables";
 import { dynamodb } from "../lib/dynamodb";
 import type { StoreStats } from "../lib/db/stats";
-import { call, check, finish, reportCrash, resolveBaseUrl } from "./test-helpers";
+import {
+  adminAuthHeaders,
+  call,
+  check,
+  finish,
+  reportCrash,
+  resolveBaseUrl,
+} from "./test-helpers";
 
 const BASE_URL = resolveBaseUrl();
 const API = `${BASE_URL}/api`;
@@ -50,6 +57,33 @@ async function main() {
     health.body?.tables?.every((t: { status: string }) => t.status === "ACTIVE"),
     health.body?.tables,
   );
+  check(
+    "public health response does not reveal the database address",
+    health.body?.target === undefined && health.body?.region === undefined,
+    health.body,
+  );
+
+  if (process.env.ADMIN_PASSWORD) {
+    console.log("   Admin password gate");
+    const anonymous = await call(`${API}/admin/stats`, "GET", undefined, {}, { auth: false });
+    check("no credentials -> 401", anonymous.status === 401, anonymous.status);
+    const wrong = await call(`${API}/admin/stats`, "GET", undefined, {
+      Authorization: `Basic ${Buffer.from("admin:wrong-password").toString("base64")}`,
+    }, { auth: false });
+    check("wrong password -> 401", wrong.status === 401, wrong.status);
+    const page = await fetch(`${BASE_URL}/admin`);
+    check(
+      "the dashboard page asks the browser to log in",
+      page.status === 401 && page.headers.get("www-authenticate")?.startsWith("Basic") === true,
+      page.status,
+    );
+    const storefront = await call(`${API}/products`, "GET", undefined, {}, { auth: false });
+    check("the public storefront API stays open", storefront.status === 200, storefront.status);
+    const userList = await call(`${API}/users`, "GET", undefined, {}, { auth: false });
+    check("the public API cannot list users (405)", userList.status === 405, userList.status);
+  } else {
+    console.log("   (ADMIN_PASSWORD not set: skipping the password gate checks)");
+  }
 
   console.log("2. Counts agree with the list APIs");
   const baseline = await getStats();
@@ -92,7 +126,7 @@ async function main() {
     );
 
     console.log("5. The dashboard page renders the live data");
-    const page = await fetch(`${BASE_URL}/admin`);
+    const page = await fetch(`${BASE_URL}/admin`, { headers: adminAuthHeaders() });
     const html = await page.text();
     check("GET /admin returns 200", page.status === 200, page.status);
     check("page shows the store totals and system health", html.includes("Store totals") && html.includes("System health"));

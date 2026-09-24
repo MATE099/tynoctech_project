@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import Badge from "../../../components/admin/Badge";
 import DataTable, { Column } from "../../../components/admin/DataTable";
+import EmptyState, { emptySecondaryActionClass } from "../../../components/admin/EmptyState";
 import ErrorState from "../../../components/admin/ErrorState";
 import ProductRef from "../../../components/admin/ProductRef";
 import StatCard from "../../../components/admin/StatCard";
@@ -134,9 +135,11 @@ export default async function InspectorPage({
             )}
           </div>
 
-          {view === "carts" && <CartsTable carts={byOwner(data.carts, owner)} />}
+          {view === "carts" && (
+            <CartsTable carts={byOwner(data.carts, owner)} owner={owner} />
+          )}
           {view === "wishlists" && (
-            <WishlistsTable wishlists={byOwner(data.wishlists, owner)} />
+            <WishlistsTable wishlists={byOwner(data.wishlists, owner)} owner={owner} />
           )}
           {view === "products" && <ProductsTable products={data.products} />}
         </>
@@ -191,7 +194,41 @@ function IssueCell({ brokenCount, extra }: { brokenCount: number; extra?: number
   return <Badge tone="green">OK</Badge>;
 }
 
-function CartsTable({ carts }: { carts: CartRecord[] }) {
+/**
+ * Empty carts/wishlists tab. With a filter on, the rows may exist for the
+ * other owner type, so we offer to show all owners instead.
+ */
+function OwnerEmptyState({ kind, owner }: { kind: "carts" | "wishlists"; owner: OwnerFilter }) {
+  if (owner !== "all") {
+    return (
+      <EmptyState
+        title={`No ${kind} owned by ${owner === "user" ? "registered users" : "guests"}`}
+        action={
+          <Link href={inspectorHref(kind, "all")} className={emptySecondaryActionClass}>
+            Show all owners
+          </Link>
+        }
+      />
+    );
+  }
+  return (
+    <EmptyState
+      title={`No ${kind} in DynamoDB yet`}
+      description={
+        kind === "carts"
+          ? "A Carts row is created the first time a shopper adds a product to their cart."
+          : "A Wishlists row is created the first time a shopper saves a product."
+      }
+      action={
+        <Link href="/" className={emptySecondaryActionClass}>
+          Open the storefront
+        </Link>
+      }
+    />
+  );
+}
+
+function CartsTable({ carts, owner }: { carts: CartRecord[]; owner: OwnerFilter }) {
   const columns: Column<CartRecord>[] = [
     { header: "Owner", render: (cart) => <OwnerCell {...cart} /> },
     {
@@ -234,10 +271,16 @@ function CartsTable({ carts }: { carts: CartRecord[] }) {
     },
   ];
 
-  return <DataTable columns={columns} rows={carts} emptyMessage="No carts match this filter." />;
+  return (
+    <DataTable
+      columns={columns}
+      rows={carts}
+      emptyState={<OwnerEmptyState kind="carts" owner={owner} />}
+    />
+  );
 }
 
-function WishlistsTable({ wishlists }: { wishlists: WishlistRecord[] }) {
+function WishlistsTable({ wishlists, owner }: { wishlists: WishlistRecord[]; owner: OwnerFilter }) {
   const columns: Column<WishlistRecord>[] = [
     { header: "Owner", render: (list) => <OwnerCell {...list} /> },
     {
@@ -260,7 +303,11 @@ function WishlistsTable({ wishlists }: { wishlists: WishlistRecord[] }) {
   ];
 
   return (
-    <DataTable columns={columns} rows={wishlists} emptyMessage="No wishlists match this filter." />
+    <DataTable
+      columns={columns}
+      rows={wishlists}
+      emptyState={<OwnerEmptyState kind="wishlists" owner={owner} />}
+    />
   );
 }
 
@@ -304,7 +351,12 @@ function ProductsTable({ products }: { products: ProductRelationship[] }) {
       <DataTable
         columns={columns}
         rows={products}
-        emptyMessage="No product is in any cart or wishlist yet."
+        emptyState={
+          <EmptyState
+            title="No product is in any cart or wishlist yet"
+            description="This view fills up as shoppers add products to carts and wishlists."
+          />
+        }
       />
     </div>
   );

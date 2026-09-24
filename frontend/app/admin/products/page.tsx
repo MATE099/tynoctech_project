@@ -3,6 +3,10 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import DataTable, { Column } from "../../../components/admin/DataTable";
 import DeleteProductButton from "../../../components/admin/DeleteProductButton";
+import EmptyState, {
+  emptyActionClass,
+  emptySecondaryActionClass,
+} from "../../../components/admin/EmptyState";
 import ErrorState from "../../../components/admin/ErrorState";
 import ProductFilters from "../../../components/admin/ProductFilters";
 import StockBadge from "../../../components/admin/StockBadge";
@@ -185,10 +189,28 @@ export default async function AdminProductsPage({
           <DataTable
             columns={columns}
             rows={products}
-            emptyMessage={
-              query || statusFilter
-                ? "No products match these filters."
-                : "No products yet. Add your first product."
+            emptyState={
+              query || statusFilter ? (
+                <EmptyState
+                  title="No products match these filters"
+                  description="Try a different search term or stock status."
+                  action={
+                    <Link href="/admin/products" className={emptySecondaryActionClass}>
+                      Clear filters
+                    </Link>
+                  }
+                />
+              ) : (
+                <EmptyState
+                  title="No products yet"
+                  description="Products you add here appear in the storefront right away. You can also load the demo catalog with npm run db:seed."
+                  action={
+                    <Link href="/admin/products/new" className={emptyActionClass}>
+                      + Add product
+                    </Link>
+                  }
+                />
+              )
             }
           />
         </>

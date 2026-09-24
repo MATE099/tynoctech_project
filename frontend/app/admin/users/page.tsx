@@ -2,6 +2,7 @@ import Form from "next/form";
 import Link from "next/link";
 import type { Metadata } from "next";
 import DataTable, { Column } from "../../../components/admin/DataTable";
+import EmptyState, { emptySecondaryActionClass } from "../../../components/admin/EmptyState";
 import ErrorState from "../../../components/admin/ErrorState";
 import { formatDate } from "../../../lib/format";
 import {
@@ -153,8 +154,23 @@ export default async function AdminUsersPage({
           <DataTable
             columns={columns}
             rows={users}
-            emptyMessage={
-              query ? "No users match this search." : "No users registered yet."
+            emptyState={
+              query ? (
+                <EmptyState
+                  title="No users match this search"
+                  description="Search looks at name, email and user ID."
+                  action={
+                    <Link href="/admin/users" className={emptySecondaryActionClass}>
+                      Clear search
+                    </Link>
+                  }
+                />
+              ) : (
+                <EmptyState
+                  title="No users registered yet"
+                  description="Users appear here after they sign up. Run npm run db:seed to add two demo users."
+                />
+              )
             }
           />
         </>

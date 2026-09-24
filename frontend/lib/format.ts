@@ -13,3 +13,18 @@ const formatter = new Intl.NumberFormat("en-US", {
 export function formatPrice(amount: number): string {
   return formatter.format(amount);
 }
+
+const dateFormatter = new Intl.DateTimeFormat("en-US", {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
+
+/**
+ * Formats an ISO timestamp, e.g. "2026-09-24T18:05:00Z" -> "Sep 24, 2026, 10:05 PM".
+ * Missing or malformed values show as a dash instead of "Invalid Date".
+ */
+export function formatDate(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? "—" : dateFormatter.format(date);
+}

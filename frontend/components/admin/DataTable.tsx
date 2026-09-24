@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import EmptyState from "./EmptyState";
 import TableSkeleton from "./TableSkeleton";
 
 /**
@@ -31,22 +32,22 @@ export default function DataTable<T extends { id: string }>({
   rows,
   isLoading = false,
   emptyMessage = "No records found.",
+  emptyState,
 }: {
   columns: Column<T>[];
   rows: T[];
   isLoading?: boolean;
+  /** Simple one-line empty text. */
   emptyMessage?: string;
+  /** A full <EmptyState /> with a description and action; wins over emptyMessage. */
+  emptyState?: ReactNode;
 }) {
   if (isLoading) {
     return <TableSkeleton columns={columns.length} rows={5} />;
   }
 
   if (rows.length === 0) {
-    return (
-      <div className="rounded-xl border border-dashed border-zinc-300 bg-white py-14 text-center dark:border-zinc-700 dark:bg-zinc-900">
-        <p className="text-sm text-zinc-500">{emptyMessage}</p>
-      </div>
-    );
+    return emptyState ?? <EmptyState title={emptyMessage} />;
   }
 
   return (

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Badge from "../../../../components/admin/Badge";
 import DataTable, { Column } from "../../../../components/admin/DataTable";
+import EmptyState from "../../../../components/admin/EmptyState";
 import ErrorState from "../../../../components/admin/ErrorState";
 import ProductRef from "../../../../components/admin/ProductRef";
 import RawRecord from "../../../../components/admin/RawRecord";
@@ -167,8 +168,15 @@ function UserDetails({ overview }: { overview: UserOverview }) {
         <DataTable
           columns={cartColumns}
           rows={cart.lines.map((line) => ({ ...line, id: line.productId }))}
-          emptyMessage={
-            cart.raw ? "The cart exists but is empty." : "This user has no cart yet."
+          emptyState={
+            <EmptyState
+              title={cart.raw ? "The cart is empty" : "No cart yet"}
+              description={
+                cart.raw
+                  ? "A Carts row exists for this user, but every item was removed."
+                  : "No Carts row exists. One is created the first time this user adds a product."
+              }
+            />
           }
         />
         {cart.lines.length > 0 && (
@@ -185,10 +193,15 @@ function UserDetails({ overview }: { overview: UserOverview }) {
         <DataTable
           columns={wishlistColumns}
           rows={wishlist.lines.map((line) => ({ ...line, id: line.productId }))}
-          emptyMessage={
-            wishlist.raw
-              ? "The wishlist exists but is empty."
-              : "This user has no wishlist yet."
+          emptyState={
+            <EmptyState
+              title={wishlist.raw ? "The wishlist is empty" : "No wishlist yet"}
+              description={
+                wishlist.raw
+                  ? "A Wishlists row exists for this user, but every item was removed."
+                  : "No Wishlists row exists. One is created the first time this user saves a product."
+              }
+            />
           }
         />
         <RawRecord label={`Raw Wishlists item (id = ${user.id})`} record={wishlist.raw} />

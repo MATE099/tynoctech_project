@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import AddCategoryButton from "../../../components/admin/AddCategoryButton";
 import CategoryActions from "../../../components/admin/CategoryActions";
 import DataTable, { Column } from "../../../components/admin/DataTable";
+import EmptyState, { emptySecondaryActionClass } from "../../../components/admin/EmptyState";
 import ErrorState from "../../../components/admin/ErrorState";
 import {
   CategoryWithCount,
@@ -150,10 +151,24 @@ export default async function AdminCategoriesPage({
           <DataTable
             columns={columns}
             rows={categories}
-            emptyMessage={
-              query
-                ? "No categories match this search."
-                : "No categories yet. Add your first category."
+            emptyState={
+              query ? (
+                <EmptyState
+                  title="No categories match this search"
+                  description={<>Nothing has &ldquo;{query}&rdquo; in its name, slug or description.</>}
+                  action={
+                    <Link href="/admin/categories" className={emptySecondaryActionClass}>
+                      Clear search
+                    </Link>
+                  }
+                />
+              ) : (
+                <EmptyState
+                  title="No categories yet"
+                  description="Categories group products into the storefront filter bar. Add one before creating products."
+                  action={<AddCategoryButton />}
+                />
+              )
             }
           />
         </>

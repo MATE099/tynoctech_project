@@ -10,7 +10,8 @@
     "db:create-tables": "tsx --env-file=.env.local scripts/create-tables.ts",
     "db:seed": "tsx --env-file=.env.local scripts/seed.ts",
     "test:products": "tsx scripts/test-product-lifecycle.ts",
-    "test:categories": "tsx scripts/test-category-lifecycle.ts"
+    "test:categories": "tsx scripts/test-category-lifecycle.ts",
+    "test:users": "tsx --env-file=.env.local scripts/test-user-inspector.ts"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1131.0",

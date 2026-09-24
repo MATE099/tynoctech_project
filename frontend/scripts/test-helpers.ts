@@ -31,12 +31,22 @@ export function check(label: string, condition: boolean, details?: unknown) {
   }
 }
 
-/** Send a JSON request and return the status plus the parsed body. */
-export async function call(url: string, method: string, body?: unknown) {
+/**
+ * Send a JSON request and return the status plus the parsed body.
+ * `headers` is for extras such as a Cookie that picks whose cart to use.
+ */
+export async function call(
+  url: string,
+  method: string,
+  body?: unknown,
+  headers: Record<string, string> = {},
+) {
   const response = await fetch(url, {
     method,
     headers:
-      body === undefined ? undefined : { "Content-Type": "application/json" },
+      body === undefined
+        ? headers
+        : { "Content-Type": "application/json", ...headers },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 

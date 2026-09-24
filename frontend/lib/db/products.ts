@@ -4,6 +4,7 @@ import {
   PutCommand,
   UpdateCommand,
   DeleteCommand,
+  BatchGetCommand,
 } from "@aws-sdk/lib-dynamodb";
 import type { ScanCommandInput } from "@aws-sdk/lib-dynamodb";
 import { dynamodb } from "../dynamodb";
@@ -40,6 +41,52 @@ export async function getProductById(id: string): Promise<Product | null> {
   const response = await dynamodb.send(command);
 
   return (response.Item as Product) ?? null;
+}
+
+/** BatchGetCommand accepts at most 100 keys per request. */
+const BATCH_GET_LIMIT = 100;
+
+/**
+ * Fetch many products by id in as few round trips as possible.
+ *
+ * One BatchGetCommand reads up to 100 keys, instead of sending one GetCommand
+ * per product. When DynamoDB is busy it may hand some keys back as
+ * `UnprocessedKeys`; those are simply requested again.
+ *
+ * Returns a Map so callers can look a product up by id. An id that is missing
+ * from the Map belongs to a product that no longer exists.
+ */
+export async function getProductsByIds(
+  ids: string[],
+): Promise<Map<string, Product>> {
+  const products = new Map<string, Product>();
+  // A Set removes duplicates: the same product in ten carts is fetched once.
+  const uniqueIds = [...new Set(ids)];
+
+  for (let start = 0; start < uniqueIds.length; start += BATCH_GET_LIMIT) {
+    let keys = uniqueIds
+      .slice(start, start + BATCH_GET_LIMIT)
+      .map((id) => ({ id }));
+
+    while (keys.length > 0) {
+      const response = await dynamodb.send(
+        new BatchGetCommand({
+          RequestItems: { [PRODUCTS_TABLE]: { Keys: keys } },
+        }),
+      );
+
+      for (const item of (response.Responses?.[PRODUCTS_TABLE] ??
+        []) as Product[]) {
+        products.set(item.id, item);
+      }
+
+      keys = (response.UnprocessedKeys?.[PRODUCTS_TABLE]?.Keys ?? []) as {
+        id: string;
+      }[];
+    }
+  }
+
+  return products;
 }
 
 /**

@@ -13,8 +13,7 @@ const NAV_ITEMS = [
   { href: "/admin/products", label: "Products" },
   { href: "/admin/categories", label: "Categories" },
   { href: "/admin/users", label: "Users" },
-  { href: "/admin/carts", label: "Carts" },
-  { href: "/admin/wishlists", label: "Wishlists" },
+  { href: "/admin/inspector", label: "Carts & Wishlists" },
 ];
 
 /**

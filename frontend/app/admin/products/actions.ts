@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { checkAdminAuth } from "../../../lib/auth/admin";
 import {
   createProductFromInput,
   replaceProductFromInput,
@@ -38,6 +40,18 @@ function readProductForm(formData: FormData) {
 const SAVE_FAILED = "Could not save the product. Is the database running?";
 
 /**
+ * proxy.ts already guards /admin, but a Server Action is an endpoint of its
+ * own: if the form ever moves to an unguarded route it would silently lose
+ * that protection. Checking here too keeps every write safe on its own.
+ */
+async function requireAdmin(): Promise<ProductFormState | null> {
+  const authorization = (await headers()).get("authorization");
+  return checkAdminAuth(authorization) === "ok"
+    ? null
+    : { message: "You are not signed in as an admin. Reload the page and log in." };
+}
+
+/**
  * Server Action behind the "Add product" form.
  *
  * `"use server"` at the top of the file turns every exported async function
@@ -48,6 +62,9 @@ export async function createProductAction(
   _previousState: ProductFormState,
   formData: FormData,
 ): Promise<ProductFormState> {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
   const values = readProductForm(formData);
 
   let result;
@@ -83,6 +100,9 @@ export async function updateProductAction(
   _previousState: ProductFormState,
   formData: FormData,
 ): Promise<ProductFormState> {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
   const values = readProductForm(formData);
 
   let result;

@@ -1,9 +1,10 @@
 import {
-  DynamoDBClient,
   CreateTableCommand,
   DescribeTableCommand,
   ResourceInUseException,
 } from "@aws-sdk/client-dynamodb";
+import { TABLES } from "../config/tables";
+import { client } from "../lib/dynamodb";
 
 /**
  * Creates the five DynamoDB tables the app needs.
@@ -12,20 +13,9 @@ import {
  * Safe to run more than once: a table that already exists is skipped.
  */
 
-// The raw client is used here (not the document client) because table
+// The raw `client` is used here (not the document client) because table
 // management is a control-plane operation, not a data operation.
-const client = new DynamoDBClient({
-  region: process.env.AWS_REGION,
-  endpoint: process.env.DYNAMODB_ENDPOINT || undefined,
-});
-
-const tables = [
-  process.env.USERS_TABLE_NAME || "Users",
-  process.env.PRODUCTS_TABLE_NAME || "Products",
-  process.env.CATEGORIES_TABLE_NAME || "Categories",
-  process.env.CARTS_TABLE_NAME || "Carts",
-  process.env.WISHLISTS_TABLE_NAME || "Wishlists",
-];
+const tables = Object.values(TABLES);
 
 async function createTable(tableName: string) {
   try {

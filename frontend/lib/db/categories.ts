@@ -8,8 +8,9 @@ import {
 import { dynamodb } from "../dynamodb";
 import { isConditionFailed } from "./errors";
 import { Category } from "../../types";
+import { TABLES } from "../../config/tables";
 
-const CATEGORIES_TABLE = process.env.CATEGORIES_TABLE_NAME || "Categories";
+const CATEGORIES_TABLE = TABLES.categories;
 
 /**
  * Fetch every category. Used to build the category filter bar on the storefront.

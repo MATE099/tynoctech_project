@@ -32,27 +32,47 @@ export function check(label: string, condition: boolean, details?: unknown) {
 }
 
 /**
+ * The admin login from .env.local as a Basic auth header, so the scripts can
+ * reach /api/admin/*. Empty when no admin password is configured.
+ */
+export function adminAuthHeaders(): Record<string, string> {
+  const { ADMIN_USERNAME, ADMIN_PASSWORD } = process.env;
+  if (!ADMIN_USERNAME || !ADMIN_PASSWORD) return {};
+  const token = Buffer.from(`${ADMIN_USERNAME}:${ADMIN_PASSWORD}`).toString("base64");
+  return { Authorization: `Basic ${token}` };
+}
+
+/**
  * Send a JSON request and return the status plus the parsed body.
  * `headers` is for extras such as a Cookie that picks whose cart to use.
+ * The admin login is added automatically; pass `auth: false` to leave it out.
  */
 export async function call(
   url: string,
   method: string,
   body?: unknown,
   headers: Record<string, string> = {},
+  { auth = true }: { auth?: boolean } = {},
 ) {
+  const allHeaders = { ...(auth ? adminAuthHeaders() : {}), ...headers };
   const response = await fetch(url, {
     method,
     headers:
       body === undefined
-        ? headers
-        : { "Content-Type": "application/json", ...headers },
+        ? allHeaders
+        : { "Content-Type": "application/json", ...allHeaders },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 
-  // A 204 response has no body at all, so guard before parsing.
+  // A 204 has no body, and an error page may be plain text, so parse carefully.
   const text = await response.text();
-  return { status: response.status, body: text ? JSON.parse(text) : null };
+  let parsed = null;
+  try {
+    parsed = text ? JSON.parse(text) : null;
+  } catch {
+    parsed = { text };
+  }
+  return { status: response.status, body: parsed };
 }
 
 /**

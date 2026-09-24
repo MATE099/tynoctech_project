@@ -3,8 +3,9 @@ import { dynamodb } from "../dynamodb";
 import { getProductById } from "./products";
 import { scanAll } from "./scan";
 import { Cart, CartLine, CartSummary } from "../../types";
+import { TABLES } from "../../config/tables";
 
-const CARTS_TABLE = process.env.CARTS_TABLE_NAME || "Carts";
+const CARTS_TABLE = TABLES.carts;
 
 /**
  * The stored cart row for one owner, or null if they never added anything.

@@ -2,8 +2,9 @@ import { ScanCommand, GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
 import { dynamodb } from "../dynamodb";
 import { scanAll } from "./scan";
 import { User } from "../../types";
+import { TABLES } from "../../config/tables";
 
-const USERS_TABLE = process.env.USERS_TABLE_NAME || "Users";
+const USERS_TABLE = TABLES.users;
 
 /** Fetch all users, across every page of the table. */
 export async function getUsers(): Promise<User[]> {

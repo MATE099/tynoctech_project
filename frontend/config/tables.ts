@@ -1,7 +1,8 @@
 /**
  * DynamoDB table names, overridable per environment in .env.local.
  *
- * Used by the stats and health checks, which need to reach every table.
+ * The single source of table names for the app, the seed/setup scripts and
+ * the tests, so a rename only ever happens here.
  */
 export const TABLES = {
   users: process.env.USERS_TABLE_NAME || "Users",

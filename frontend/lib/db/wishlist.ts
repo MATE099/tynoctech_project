@@ -3,8 +3,9 @@ import { dynamodb } from "../dynamodb";
 import { getProductById } from "./products";
 import { scanAll } from "./scan";
 import { Wishlist, WishlistLine } from "../../types";
+import { TABLES } from "../../config/tables";
 
-const WISHLISTS_TABLE = process.env.WISHLISTS_TABLE_NAME || "Wishlists";
+const WISHLISTS_TABLE = TABLES.wishlists;
 
 /**
  * The stored wishlist row for one owner (guest session id or user id), or

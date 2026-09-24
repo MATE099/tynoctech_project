@@ -1,0 +1,15 @@
+# The app has its own frontend/.gitignore. This file covers the repo root.
+
+# Secrets: never commit env files (frontend/.env.example is the template).
+.env
+.env.*
+!.env.example
+
+# OS and editor clutter
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# OneDrive/Dropbox conflict copies, e.g. "page-matash.tsx"
+*-matash*

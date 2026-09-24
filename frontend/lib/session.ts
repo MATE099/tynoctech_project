@@ -23,6 +23,9 @@ export async function getOrCreateSessionId(): Promise<string> {
   cookieStore.set(SESSION_COOKIE, id, {
     httpOnly: true, // not readable by browser JS -> safer
     sameSite: "lax",
+    // HTTPS-only in production so the id can't be read on an open network.
+    // Browsers treat http://localhost as secure, so local Docker still works.
+    secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: THIRTY_DAYS,
   });

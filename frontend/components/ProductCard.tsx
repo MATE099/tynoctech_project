@@ -2,14 +2,16 @@ import Link from "next/link";
 import Image from "next/image";
 import { Product } from "../types";
 import { formatPrice } from "../lib/format";
+import { getStockStatus } from "../lib/stock";
 
 /**
  * A single product tile used in the catalog grid.
  * The whole card is a link to the product detail page.
  */
 export default function ProductCard({ product }: { product: Product }) {
-  const outOfStock = product.stock <= 0;
-  const lowStock = !outOfStock && product.stock <= 5;
+  const status = getStockStatus(product.stock);
+  const outOfStock = status === "out_of_stock";
+  const lowStock = status === "low_stock";
 
   return (
     <Link

@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { ALLOWED_IMAGE_HOSTS } from "./config/images";
 
 const nextConfig: NextConfig = {
   // Produce a self-contained .next/standalone folder (app + only the needed
@@ -7,17 +8,11 @@ const nextConfig: NextConfig = {
   output: "standalone",
   images: {
     // Allow next/image to optimize images served from these remote hosts.
-    // Add more patterns here when you switch to your own images (e.g. S3).
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "cdn.dummyjson.com",
-      },
-      {
-        protocol: "https",
-        hostname: "placehold.co",
-      },
-    ],
+    // Edit config/images.ts to add a host (e.g. your own S3 bucket).
+    remotePatterns: ALLOWED_IMAGE_HOSTS.map((hostname) => ({
+      protocol: "https" as const,
+      hostname,
+    })),
   },
 };
 

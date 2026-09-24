@@ -1,9 +1,9 @@
-import { getProducts, getProductsByCategory } from "../lib/db/products";
-import { getCategories } from "../lib/db/categories";
-import { Category, Product } from "../types";
-import ProductCard from "../components/ProductCard";
-import CategoryFilter from "../components/CategoryFilter";
-import SearchBar from "../components/SearchBar";
+import { getProducts, getProductsByCategory } from "../../lib/db/products";
+import { getCategories } from "../../lib/db/categories";
+import { Category, Product } from "../../types";
+import ProductCard from "../../components/ProductCard";
+import CategoryFilter from "../../components/CategoryFilter";
+import SearchBar from "../../components/SearchBar";
 
 /**
  * Homepage / storefront.

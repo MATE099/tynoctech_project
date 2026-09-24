@@ -2,9 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useWishlist } from "../../components/WishlistProvider";
-import { useCart } from "../../components/CartProvider";
-import { formatPrice } from "../../lib/format";
+import { useWishlist } from "../../../components/WishlistProvider";
+import { useCart } from "../../../components/CartProvider";
+import { formatPrice } from "../../../lib/format";
 
 /**
  * Wishlist page (route: /wishlist).

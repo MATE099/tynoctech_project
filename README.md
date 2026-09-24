@@ -57,6 +57,16 @@ logic, a wishlist, and basic user data management.
 - Input validation with Zod on every API route
 - 404 / not-found handling (global and per product)
 
+**Admin dashboard (`/admin`)**
+
+- Live store totals: users, products, categories, cart items, wishlist items
+  (`lib/db/stats.ts`, using `Select: "COUNT"` and projection scans)
+- Stock health, recent sign-ups, and recent cart/wishlist activity
+- System health panel plus `GET /api/health` (200 healthy, 503 degraded) for monitors
+- Product, category, user, and cart/wishlist inspector management pages
+- Error boundaries (`app/admin/error.tsx`, `app/global-error.tsx`) and
+  empty states with a next step on every admin table
+
 ---
 
 ## Tech Stack
@@ -209,8 +219,15 @@ The app uses five tables. Each has a single **partition key `id`** of type
 | `Users`      | `id` (String) | User records (name, email)                |
 | `Products`   | `id` (String) | Product catalog                           |
 | `Categories` | `id` (String) | Product categories                        |
-| `Carts`      | `id` (String) | One cart per guest session (`items[]`)    |
-| `Wishlists`  | `id` (String) | One wishlist per guest session (`items[]`)|
+| `Carts`      | `id` (String) | One cart per owner (`items[]`)            |
+| `Wishlists`  | `id` (String) | One wishlist per owner (`items[]`)        |
+
+A cart or wishlist's `id` is its **owner's id**: the guest session id from the
+`tynoc_session` cookie, or a registered user's id. Looking up a user's cart is
+therefore a single key read (`GetCommand` with `id = userId`). The admin
+inspector (`/admin/inspector`) resolves each row's owner against `Users` and
+each `items[].productId` against `Products` (batched with `BatchGetCommand`),
+and flags items that point at deleted products.
 
 ### How the app reads/creates/updates/deletes data (CRUD)
 
@@ -317,6 +334,13 @@ Run inside `frontend/`:
 | `npm run lint`            | Run ESLint                                      |
 | `npm run db:create-tables`  | Create Users/Products/Categories/Carts/Wishlists |
 | `npm run db:seed`           | Load `scripts/catalog.json` + sample users      |
+| `npm run test:products`     | End-to-end product CRUD test (needs `npm run dev`) |
+| `npm run test:categories`   | End-to-end category CRUD test                   |
+| `npm run test:users`        | End-to-end user and cart/wishlist inspector test |
+| `npm run test:stats`        | Dashboard counts and `/api/health` test         |
+
+Test scripts default to `http://localhost:3000`; pass another URL after `--`,
+e.g. `npm run test:stats -- http://localhost:3001`.
 
 ---
 

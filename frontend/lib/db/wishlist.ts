@@ -1,9 +1,28 @@
 import { GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
 import { dynamodb } from "../dynamodb";
 import { getProductById } from "./products";
+import { scanAll } from "./scan";
 import { Wishlist, WishlistLine } from "../../types";
 
 const WISHLISTS_TABLE = process.env.WISHLISTS_TABLE_NAME || "Wishlists";
+
+/**
+ * The stored wishlist row for one owner (guest session id or user id), or
+ * null if none exists. See getCartByOwner() for why this is a key lookup.
+ */
+export async function getWishlistByOwner(
+  ownerId: string,
+): Promise<Wishlist | null> {
+  const response = await dynamodb.send(
+    new GetCommand({ TableName: WISHLISTS_TABLE, Key: { id: ownerId } }),
+  );
+  return (response.Item as Wishlist) ?? null;
+}
+
+/** Every wishlist row in the table, for the admin inspector. */
+export async function getAllWishlists(): Promise<Wishlist[]> {
+  return scanAll<Wishlist>(WISHLISTS_TABLE);
+}
 
 /** Load a wishlist by id, or return an empty one if none exists yet. */
 export async function getWishlist(wishlistId: string): Promise<Wishlist> {

@@ -6,7 +6,7 @@ import {
 
 /**
  * GET /api/admin/users?q=... -> users with cart/wishlist activity counts.
- * (The public /api/users route stays as-is for the storefront.)
+ * The only way to list users; the public /api/users route is POST-only.
  */
 export async function GET(request: Request) {
   const query = new URL(request.url).searchParams.get("q") ?? undefined;

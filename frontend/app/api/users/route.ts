@@ -1,29 +1,15 @@
 import { NextResponse } from "next/server";
-import { createUser, getUsers } from "../../../lib/db/users";
+import { createUser } from "../../../lib/db/users";
 import { createUserSchema } from "../../../lib/validations/user";
 
 /**
- * Users API.
- *   GET  /api/users -> list users
+ * Public Users API.
  *   POST /api/users -> create a user { name, email }
  *
- * Demonstrates create + read for the Users entity with Zod validation and
- * duplicate-email prevention.
+ * There is deliberately no public GET: listing users would hand every name
+ * and email to anyone on the internet. Admins list users through the
+ * password-protected GET /api/admin/users instead.
  */
-
-export async function GET() {
-  try {
-    const users = await getUsers();
-    return NextResponse.json({ count: users.length, users });
-  } catch (error) {
-    console.error("GET /api/users failed:", error);
-    return NextResponse.json(
-      { error: "Failed to load users" },
-      { status: 500 },
-    );
-  }
-}
-
 export async function POST(request: Request) {
   try {
     const body = await request.json();

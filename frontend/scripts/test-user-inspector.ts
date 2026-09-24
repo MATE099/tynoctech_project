@@ -15,17 +15,12 @@
  */
 
 import { DeleteCommand } from "@aws-sdk/lib-dynamodb";
+import { TABLES } from "../config/tables";
 import { dynamodb } from "../lib/dynamodb";
 import { call, check, finish, reportCrash, resolveBaseUrl } from "./test-helpers";
 
 const BASE_URL = resolveBaseUrl();
 const API = `${BASE_URL}/api`;
-
-const TABLES = {
-  users: process.env.USERS_TABLE_NAME || "Users",
-  carts: process.env.CARTS_TABLE_NAME || "Carts",
-  wishlists: process.env.WISHLISTS_TABLE_NAME || "Wishlists",
-};
 
 /** Headers that make the storefront API treat us as `ownerId`. */
 const as = (ownerId: string) => ({ Cookie: `tynoc_session=${ownerId}` });

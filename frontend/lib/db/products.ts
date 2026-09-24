@@ -10,10 +10,11 @@ import type { ScanCommandInput } from "@aws-sdk/lib-dynamodb";
 import { dynamodb } from "../dynamodb";
 import { isConditionFailed } from "./errors";
 import { Product } from "../../types";
+import { TABLES } from "../../config/tables";
 
 // Table name comes from the environment so we can use different tables
 // per environment (dev/prod). Falls back to "Products" for local dev.
-const PRODUCTS_TABLE = process.env.PRODUCTS_TABLE_NAME || "Products";
+const PRODUCTS_TABLE = TABLES.products;
 
 /**
  * Fetch every product in the table.

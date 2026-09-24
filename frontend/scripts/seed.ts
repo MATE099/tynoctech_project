@@ -7,12 +7,15 @@ import {
 } from "@aws-sdk/lib-dynamodb";
 import { dynamodb } from "../lib/dynamodb";
 import { Cart, Category, Product, User, Wishlist } from "../types";
+import { TABLES } from "../config/tables";
 
-const CATEGORIES_TABLE = process.env.CATEGORIES_TABLE_NAME || "Categories";
-const PRODUCTS_TABLE = process.env.PRODUCTS_TABLE_NAME || "Products";
-const USERS_TABLE = process.env.USERS_TABLE_NAME || "Users";
-const CARTS_TABLE = process.env.CARTS_TABLE_NAME || "Carts";
-const WISHLISTS_TABLE = process.env.WISHLISTS_TABLE_NAME || "Wishlists";
+const {
+  categories: CATEGORIES_TABLE,
+  products: PRODUCTS_TABLE,
+  users: USERS_TABLE,
+  carts: CARTS_TABLE,
+  wishlists: WISHLISTS_TABLE,
+} = TABLES;
 
 const now = () => new Date().toISOString();
 

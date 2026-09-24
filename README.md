@@ -209,8 +209,15 @@ The app uses five tables. Each has a single **partition key `id`** of type
 | `Users`      | `id` (String) | User records (name, email)                |
 | `Products`   | `id` (String) | Product catalog                           |
 | `Categories` | `id` (String) | Product categories                        |
-| `Carts`      | `id` (String) | One cart per guest session (`items[]`)    |
-| `Wishlists`  | `id` (String) | One wishlist per guest session (`items[]`)|
+| `Carts`      | `id` (String) | One cart per owner (`items[]`)            |
+| `Wishlists`  | `id` (String) | One wishlist per owner (`items[]`)        |
+
+A cart or wishlist's `id` is its **owner's id**: the guest session id from the
+`tynoc_session` cookie, or a registered user's id. Looking up a user's cart is
+therefore a single key read (`GetCommand` with `id = userId`). The admin
+inspector (`/admin/inspector`) resolves each row's owner against `Users` and
+each `items[].productId` against `Products` (batched with `BatchGetCommand`),
+and flags items that point at deleted products.
 
 ### How the app reads/creates/updates/deletes data (CRUD)
 

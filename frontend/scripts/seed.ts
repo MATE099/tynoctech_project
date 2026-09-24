@@ -6,11 +6,13 @@ import {
   DeleteCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { dynamodb } from "../lib/dynamodb";
-import { Category, Product, User } from "../types";
+import { Cart, Category, Product, User, Wishlist } from "../types";
 
 const CATEGORIES_TABLE = process.env.CATEGORIES_TABLE_NAME || "Categories";
 const PRODUCTS_TABLE = process.env.PRODUCTS_TABLE_NAME || "Products";
 const USERS_TABLE = process.env.USERS_TABLE_NAME || "Users";
+const CARTS_TABLE = process.env.CARTS_TABLE_NAME || "Carts";
+const WISHLISTS_TABLE = process.env.WISHLISTS_TABLE_NAME || "Wishlists";
 
 const now = () => new Date().toISOString();
 
@@ -47,20 +49,69 @@ const sampleUsers: User[] = [
 ];
 
 /**
+ * Demo carts and wishlists for the sample users, so the admin inspector has
+ * user-owned data to show. They are stored under the user's id: the same key
+ * a signed-in user's cart will use once authentication exists (guests use
+ * their session id instead).
+ */
+const productAt = (index: number) => products[index % products.length].id;
+
+const sampleCarts: Cart[] = [
+  {
+    id: "user-1",
+    items: [
+      { productId: productAt(0), quantity: 2 },
+      { productId: productAt(7), quantity: 1 },
+    ],
+    updatedAt: now(),
+  },
+  {
+    id: "user-2",
+    items: [{ productId: productAt(12), quantity: 1 }],
+    updatedAt: now(),
+  },
+];
+
+const sampleWishlists: Wishlist[] = [
+  {
+    id: "user-1",
+    items: [
+      { productId: productAt(3), addedAt: now() },
+      { productId: productAt(20), addedAt: now() },
+    ],
+    updatedAt: now(),
+  },
+  {
+    id: "user-2",
+    items: [{ productId: productAt(0), addedAt: now() }],
+    updatedAt: now(),
+  },
+];
+
+/**
  * Write every item, then delete anything left over from a previous seed.
  *
  * Pruning makes the script IDEMPOTENT: running it twice always leaves the table
  * matching `catalog.json` exactly, instead of accumulating stale rows (for
  * example categories that no longer have any products).
+ *
+ * Pass `{ prune: false }` for tables that also hold real visitor data (carts,
+ * wishlists), so reseeding never wipes a shopper's guest cart.
  */
 async function seedTable<T extends { id: string }>(
   label: string,
   table: string,
   items: T[],
+  { prune = true }: { prune?: boolean } = {},
 ) {
   console.log(`Seeding ${items.length} ${label}...`);
   for (const item of items) {
     await dynamodb.send(new PutCommand({ TableName: table, Item: item }));
+  }
+
+  if (!prune) {
+    console.log("  done (existing rows kept)");
+    return;
   }
 
   const wantedIds = new Set(items.map((item) => item.id));
@@ -85,6 +136,10 @@ async function seed() {
   await seedTable("categories", CATEGORIES_TABLE, catalog.categories);
   await seedTable("products", PRODUCTS_TABLE, products);
   await seedTable("users", USERS_TABLE, sampleUsers);
+  await seedTable("demo carts", CARTS_TABLE, sampleCarts, { prune: false });
+  await seedTable("demo wishlists", WISHLISTS_TABLE, sampleWishlists, {
+    prune: false,
+  });
   console.log("All sample data seeded successfully!");
 }
 
